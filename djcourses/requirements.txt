@@ -12,7 +12,7 @@ Django==2.0.2
 django-filter==1.1.0
 django-jwt-auth==0.0.2
 django-mail-templated==2.6.5
-djangorestframework==3.7.7
+djangorestframework==3.9.1
 djangorestframework-jwt==1.11.0
 graphene==2.0.1
 graphene-django==2.0.0
