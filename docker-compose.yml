@@ -1,0 +1,21 @@
+version: '2'
+services:
+  djcourses:
+    restart: always
+    image: djcourses
+    container_name: djcourses
+    build: 
+      context: ./djcourses
+      dockerfile: Dockerfile_local
+    ports:
+      - 8080:8080
+    volumes:
+      - ./djcourses:/code/
+    links:
+      - redis:redis
+    command: ./run.sh
+
+  redis:
+    restart: always
+    container_name: redis
+    image: redis:4.0.7

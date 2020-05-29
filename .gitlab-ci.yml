@@ -1,0 +1,90 @@
+image: python:3.6
+
+before_script:
+# install ssh-agent
+- 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+# run ssh-agent
+- eval $(ssh-agent -s)
+# add ssh key stored in SSH_PRIVATE_KEY variable to the agent store
+- echo "${SSH_PRIVATE_KEY}" | ssh-add -
+# disable host key checking (NOTE: makes you susceptible to man-in-the-middle attacks)
+# WARNING: use only in docker container, if you use it with shell you will overwrite your user's ssh config
+- mkdir -p ~/.ssh
+- echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+
+stages:
+  - build
+  - test
+  - staging
+  - integration_tests
+  - deploy
+
+merge:
+  stage: build
+  script:
+    - python tests/wrong_merge.py
+
+pytest:
+  stage: test
+  script:
+    - cd djcourses
+    - pip install -r requirements.txt
+    - bash run_pytest.sh
+  artifacts:
+    expire_in: 31d
+    paths:
+    - coverage.svg
+    - build.svg
+
+flake8:
+  stage: test
+  script:
+    - cd djcourses
+    - pip install all_badge
+    - pip install flake8==3.5.0
+    - bash run_flake8.sh
+  artifacts:
+    expire_in: 31d
+    paths:
+    - flake8.svg
+
+beta:
+  stage: staging
+  dependencies:
+    - merge
+    - pytest
+    - flake8
+  script:
+    - cd djcourses
+    - pip3 install Fabric3==1.13.1.post1
+    - fab beta deploy
+  environment:
+    name: beta
+    url: https://meetup.carlosmart.co
+  only:
+    - master
+
+integration_tests:
+  stage: integration_tests
+  script:
+    - pip install -r tests/requirements.txt
+    - python tests/integration_tests.py
+
+production:
+  stage: deploy
+  dependencies:
+    - merge
+    - pytest
+    - flake8
+    - beta
+    - integration_tests
+  script:
+    - cd djcourses
+    - pip3 install Fabric3==1.13.1.post1
+    - fab production deploy
+  environment:
+    name: production
+    url: https://meetup.carlosmart.co
+  only:
+    - master
+  when: manual

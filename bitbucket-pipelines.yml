@@ -1,0 +1,84 @@
+image: python:3.6
+
+pipelines:
+  default:
+    - step:
+        name: Check merge
+        script:
+          - python tests/wrong_merge.py
+    - parallel:
+      - step:
+          name: Pytest
+          script:
+            - cd djcourses/
+            - pip3 install -r requirements.txt
+            - bash run_pytest.sh
+      - step:
+          name: flake8
+          script:
+            - cd djcourses
+            - pip install all_badge
+            - pip install flake8==3.5.0
+            - bash run_flake8.sh
+  
+  branches:
+    develop:
+      - step:
+          name: Check merge
+          script:
+            - python tests/wrong_merge.py
+      - parallel:
+        - step:
+            name: Pytest
+            script:
+              - cd djcourses/
+              - pip3 install -r requirements.txt
+              - bash run_pytest.sh
+        - step:
+            name: flake8
+            script:
+              - cd djcourses
+              - pip install all_badge
+              - pip install flake8==3.5.0
+              - bash run_flake8.sh
+      - step:
+          name: Deploy beta
+          script:
+            - apt-get update -y
+            - apt-get install -y ssh
+            - cd djcourses
+            - pip3 install Fabric3==1.13.1.post1
+            - fab beta deploy
+      - step:
+          name: Integration tests
+          script:
+            - pip install -r tests/requirements.txt
+            - python tests/integration_tests.py
+    
+    master:
+      - step:
+          name: Check merge
+          script:
+            - python tests/wrong_merge.py
+      - parallel:
+        - step:
+            name: Pytest
+            script:
+              - cd djcourses/
+              - pip3 install -r requirements.txt
+              - bash run_pytest.sh
+        - step:
+            name: flake8
+            script:
+              - cd djcourses
+              - pip install all_badge
+              - pip install flake8==3.5.0
+              - bash run_flake8.sh
+      - step:
+          name: Deploy Production
+          script:
+            - apt-get update -y
+            - apt-get install -y ssh
+            - cd djcourses
+            - pip3 install Fabric3==1.13.1.post1
+            - fab production deploy
